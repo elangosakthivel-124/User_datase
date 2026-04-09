@@ -5,6 +5,6 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100))
-    email = Column(String(100))
+    name = Column(String)
+    email = Column(String, unique=True)
     age = Column(Integer)
