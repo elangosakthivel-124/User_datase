@@ -43,16 +43,16 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-# ✅ Update User
+# ✅ Update User (supports partial updates)
 @app.put("/users/{user_id}", response_model=schemas.UserResponse)
 def update_user(user_id: int, updated_user: schemas.UserUpdate, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.name = updated_user.name
-    user.email = updated_user.email
-    user.age = updated_user.age
+    # Apply only provided fields
+    for key, value in updated_user.dict(exclude_unset=True).items():
+        setattr(user, key, value)
 
     db.commit()
     db.refresh(user)
