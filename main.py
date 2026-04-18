@@ -160,3 +160,71 @@ def refresh_token(refresh_token: str):
 @app.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user = Depends(get_current_user)):
     return current_user
+
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+import models, schemas
+from db import engine, get_db
+from security import hash_password, verify_password
+from auth import create_access_token
+from dependencies import get_current_user, require_role
+from utils.token_blacklist import add_to_blacklist
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+
+# ✅ Register
+@app.post("/register", response_model=schemas.UserResponse)
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.email == user.email).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Email exists")
+
+    new_user = models.User(
+        name=user.name,
+        email=user.email,
+        age=user.age,
+        password=hash_password(user.password),
+        role="user"
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+
+
+# ✅ Login
+@app.post("/login")
+def login(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+
+    if not db_user or not verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_access_token({"sub": db_user.email})
+
+    return {"access_token": token}
+
+
+# 🔒 Logout
+@app.post("/logout")
+def logout(token: str = Depends(get_current_user)):
+    add_to_blacklist(token)
+    return {"message": "Logged out successfully"}
+
+
+# 🔒 Protected Route
+@app.get("/me", response_model=schemas.UserResponse)
+def get_me(current_user = Depends(get_current_user)):
+    return current_user
+
+
+# 👑 Admin Only Route
+@app.get("/admin")
+def admin_only(user = Depends(require_role("admin"))):
+    return {"message": "Welcome Admin!"}
