@@ -1,86 +1,7 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from db import get_db
-from auth import decode_token
-import models
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    payload = decode_token(token)
-
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    email = payload.get("sub")
-    user = db.query(models.User).filter(models.User.email == email).first()
-
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return user
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from db import get_db
-from auth import decode_token
-import models
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    payload = decode_token(token)
-
-    if payload is None or payload.get("type") != "access":
-        raise HTTPException(status_code=401, detail="Invalid access token")
-
-    email = payload.get("sub")
-    user = db.query(models.User).filter(models.User.email == email).first()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return user
-    from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from db import get_db
-from auth import decode_token
-from utils.token_blacklist import is_blacklisted
-import models
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    if is_blacklisted(token):
-        raise HTTPException(status_code=401, detail="Token has been revoked")
-
-    payload = decode_token(token)
-
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    email = payload.get("sub")
-    user = db.query(models.User).filter(models.User.email == email).first()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return user
-
-
-# 🔐 Role-based dependency
-def require_role(required_role: str):
-    def role_checker(user = Depends(get_current_user)):
-        if user.role != required_role:
-            raise HTTPException(status_code=403, detail="Access denied")
-        return user
-    return role_checker
-
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 from db import get_db
 from auth import decode_token
 from utils.redis_client import is_token_blacklisted
@@ -88,22 +9,55 @@ import models
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
+    # 🔴 Check blacklist first
     if is_token_blacklisted(token):
-        raise HTTPException(status_code=401, detail="Token revoked")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token revoked"
+        )
 
+    # 🔓 Decode token
     payload = decode_token(token)
 
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token"
+        )
 
     email = payload.get("sub")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload"
+        )
+
+    # 👤 Fetch user
     user = db.query(models.User).filter(models.User.email == email).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
     return user
+
+
+# 🔐 Role-based access control
+def require_role(required_role: str):
+    def role_checker(user: models.User = Depends(get_current_user)):
+        if user.role != required_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+        return user
+
+    return role_checker
