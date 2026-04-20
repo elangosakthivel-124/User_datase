@@ -1,9 +1,18 @@
 from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing configuration
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
 
-def hash_password(password: str):
+def hash_password(password: str) -> str:
+    """Generate a secure hash for a password."""
     return pwd_context.hash(password)
 
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except (ValueError, TypeError):
+        return False
