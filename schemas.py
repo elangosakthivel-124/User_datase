@@ -1,24 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    age: int
-    password: str
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
-    age: int
-
-    class Config:
-        from_attributes = True
-from pydantic import BaseModel, EmailStr
+# ----------- Request Schemas -----------
 
 class UserCreate(BaseModel):
     name: str
@@ -26,62 +9,28 @@ class UserCreate(BaseModel):
     age: int
     password: str
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
-    age: int
-
-    class Config:
-        from_attributes = True
-from pydantic import BaseModel, EmailStr
-
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    age: int
-    password: str
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+# ----------- Auth Schemas -----------
 
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
-    age: int
 
-    class Config:
-        from_attributes = True
-
-from pydantic import BaseModel, EmailStr
-
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    age: int
-    password: str
+# ----------- Response Schemas -----------
 
 class UserResponse(BaseModel):
     id: int
     name: str
     email: EmailStr
     age: int
-    role: str
+    role: str  # added role as per your final version
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # for SQLAlchemy ORM compatibility
