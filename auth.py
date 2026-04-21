@@ -11,6 +11,7 @@ def create_access_token(data: dict):
     )
 
     to_encode.update({
+        "sub": data.get("sub"),
         "exp": expire,
         "iat": datetime.utcnow(),
         "type": "access"
@@ -31,6 +32,7 @@ def create_refresh_token(data: dict):
     )
 
     to_encode.update({
+        "sub": data.get("sub"),
         "exp": expire,
         "iat": datetime.utcnow(),
         "type": "refresh"
@@ -45,11 +47,10 @@ def create_refresh_token(data: dict):
 
 def decode_token(token: str):
     try:
-        payload = jwt.decode(
+        return jwt.decode(
             token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM]
         )
-        return payload
     except JWTError:
         return None
