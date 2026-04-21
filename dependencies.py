@@ -7,21 +7,19 @@ from auth import decode_token
 from utils.redis_client import is_token_blacklisted
 import models
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    # 🔴 Check blacklist first
     if is_token_blacklisted(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token revoked"
         )
 
-    # 🔓 Decode token
     payload = decode_token(token)
 
     if not payload or payload.get("type") != "access":
@@ -38,7 +36,6 @@ def get_current_user(
             detail="Invalid token payload"
         )
 
-    # 👤 Fetch user
     user = db.query(models.User).filter(models.User.email == email).first()
 
     if not user:
@@ -50,7 +47,6 @@ def get_current_user(
     return user
 
 
-# 🔐 Role-based access control
 def require_role(required_role: str):
     def role_checker(user: models.User = Depends(get_current_user)):
         if user.role != required_role:
