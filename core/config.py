@@ -1,13 +1,18 @@
-import os
-from dotenv import load_dotenv
+from pydantic import BaseSettings, Field
 
-load_dotenv()
 
-class Settings:
-    SECRET_KEY = os.getenv("SECRET_KEY")
-    ALGORITHM = os.getenv("ALGORITHM", "HS256")
-    ACCESS_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+class Settings(BaseSettings):
+    SECRET_KEY: str = Field(..., min_length=32)
+    ALGORITHM: str = "HS256"
+
+    ACCESS_EXPIRE_MINUTES: int = Field(..., gt=0)
+    REFRESH_EXPIRE_DAYS: int = Field(..., gt=0)
+
+    DATABASE_URL: str
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
 
 settings = Settings()
