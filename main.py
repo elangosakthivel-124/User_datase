@@ -105,6 +105,20 @@ def logout(token: str = Depends(oauth2_scheme)):
 def get_me(current_user=Depends(get_current_user)):
     return current_user
 
+from fastapi import FastAPI
+from db import engine
+import models
+
+from routers import auth, users
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="User Management API", version="1.1.0")
+
+# Include Routers
+app.include_router(auth.router, tags=["Auth"])
+app.include_router(users.router, tags=["Users"])
+
 
 # =========================
 # 👑 Admin Route
