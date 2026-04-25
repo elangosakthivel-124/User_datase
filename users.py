@@ -21,3 +21,19 @@ def get_current_user_data(current_user):
 
 def admin_access():
     return {"message": "Welcome Admin!"}
+from fastapi import APIRouter, Depends
+from dependencies import get_current_user, require_role
+import schemas
+from services.user_service import get_current_user_data, admin_access
+
+router = APIRouter()
+
+
+@router.get("/me", response_model=schemas.UserResponse)
+def get_me(current_user=Depends(get_current_user)):
+    return get_current_user_data(current_user)
+
+
+@router.get("/admin")
+def admin_only(user=Depends(require_role("admin"))):
+    return admin_access()
