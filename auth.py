@@ -160,3 +160,30 @@ def login_user(db: Session, user_data):
         "access_token": token,
         "token_type": "bearer"
     }
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer
+
+import schemas
+from db import get_db
+from services.auth_service import register_user, login_user
+from utils.redis_client import blacklist_token
+
+router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+@router.post("/register", response_model=schemas.UserResponse, status_code=201)
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    return register_user(db, user)
+
+
+@router.post("/login")
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    return login_user(db, user)
+
+
+@router.post("/logout")
+def logout(token: str = Depends(oauth2_scheme)):
+    blacklist_token(token, 900)
+    return {"message": "Logged out successfully"}
