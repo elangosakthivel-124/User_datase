@@ -129,3 +129,28 @@ app = FastAPI(title="User Management API", version="1.2.0")
 
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(users.router, tags=["Users"])
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from core.token import verify_token
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = verify_token(token)
+
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+
+        return payload
+
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+def require_role(role: str):
+    def role_checker(user=Depends(get_current_user)):
+        # NOTE: This assumes role is embedded later (Day 5 improvement)
+        return user
+    return role_checker
