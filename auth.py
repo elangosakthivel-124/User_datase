@@ -187,3 +187,42 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 def logout(token: str = Depends(oauth2_scheme)):
     blacklist_token(token, 900)
     return {"message": "Logged out successfully"}
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+
+import schemas
+from db import get_db
+from services.auth_service import register_user, login_user
+from core.token import verify_token, create_access_token
+from utils.redis_client import blacklist_token
+
+router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+@router.post("/register", response_model=schemas.UserResponse, status_code=201)
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    return register_user(db, user)
+
+
+@router.post("/login")
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    return login_user(db, user)
+
+
+@router.post("/refresh")
+def refresh_token(token: str = Depends(oauth2_scheme)):
+    payload = verify_token(token)
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    new_access_token = create_access_token({"sub": payload.get("sub")})
+
+    return {"access_token": new_access_token}
+
+
+@router.post("/logout")
+def logout(token: str = Depends(oauth2_scheme)):
+    blacklist_token(token, 900)
+    return {"message": "Logged out successfully"}
