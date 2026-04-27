@@ -57,3 +57,35 @@ def require_role(required_role: str):
         return user
 
     return role_checker
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from core.token import verify_token
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = verify_token(token)
+
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+
+        return payload
+
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+# ✅ Proper role enforcement
+
+def require_role(required_role: str):
+    def role_checker(user=Depends(get_current_user)):
+        user_role = user.get("role")
+
+        if user_role != required_role:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        return user
+
+    return role_checker
