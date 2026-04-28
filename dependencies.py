@@ -89,3 +89,25 @@ def require_role(required_role: str):
         return user
 
     return role_checker
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from core.token import verify_token
+from utils.redis_client import is_token_blacklisted
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    if is_token_blacklisted(token):
+        raise HTTPException(status_code=401, detail="Token revoked")
+
+    try:
+        payload = verify_token(token)
+
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+
+        return payload
+
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
