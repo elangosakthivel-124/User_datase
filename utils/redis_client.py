@@ -9,3 +9,14 @@ def blacklist_token(token: str, expire_seconds: int):
 
 def is_token_blacklisted(token: str):
     return redis_client.exists(token) == 1
+import redis
+
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
+
+def blacklist_token(token: str, expiry: int):
+    redis_client.setex(token, expiry, "blacklisted")
+
+
+def is_token_blacklisted(token: str) -> bool:
+    return redis_client.exists(token) == 1
