@@ -3,15 +3,31 @@ version: "3.9"
 services:
   app:
     build: .
-    ports:
-      - "8000:8000"
     depends_on:
       - redis
+      - db
     environment:
       - SECRET_KEY=supersecretkey
       - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://postgres:password@db:5432/appdb
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7
+
+  nginx:
+    image: nginx:latest
     ports:
-      - "6379:6379"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
