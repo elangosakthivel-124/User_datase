@@ -50,7 +50,7 @@ jobs:
           echo "REDIS_HOST=localhost" >> $GITHUB_ENV
           echo "SECRET_KEY=testsecretkey" >> $GITHUB_ENV
 
-      - name: Run migrations
+      - name: Run migration
         run: |
           alembic upgrade head
 
